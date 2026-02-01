@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Platos </title>
+    
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sab's Home - Multi-Buscador</title>
+    <style>
+        :root {
+            --gold: #ffcc00;
+            --red: #d63031;
+            --dark: #0a0a0a;
+            --gray: #1a1a1a;
+        }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--dark);
+            color: #eee;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        /* --- Buscador Fijo --- */
+        .search-box {
+            background: var(--gray);
+            padding: 12px;
+            border-radius: 12px;
+            border: 2px solid var(--gold);
+            width: 95%;
+            max-width: 500px;
+            position: sticky;
+            top: 5px;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+        }
+        #voice-btn {
+            background: var(--gold);
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+        #voice-btn.listening { background: var(--red); color: white; animation: pulse 1s infinite; }
+        #manual-search {
+            width: 100%;
+            padding: 12px;
+            border-radius: 6px;
+            border: none;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        /* --- Contenedor de Fichas --- */
+        .container { width: 100%; max-width: 600px; margin-top: 15px; }
+        .food-card {
+            display: none; 
+            background: var(--gray);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 1px solid #333;
+            margin-bottom: 25px;
+            animation: fadeIn 0.4s ease-out;
+        }
+        .food-card.active { display: block; }
+        .food-card img { 
+            width: 100%; 
+            max-height: 250px; 
+            object-fit: cover;
+            border-bottom: 2px solid var(--gold);
+        }
+        .food-details { padding: 15px; }
+        .food-details h2 { color: var(--gold); margin: 0 0 10px 0; font-size: 1.4rem; text-align: center; text-transform: uppercase; }
+        .ingredient-list { display: flex; flex-direction: column; gap: 4px; }
+        .ingredient-item {
+            padding: 14px;
+            background: #252525;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 5px solid transparent;
+            transition: 0.2s;
+        }
+        .ingredient-item.selected {
+            background: rgba(255, 204, 0, 0.1);
+            border-left: 5px solid var(--gold);
+            color: var(--gold);
+            font-weight: bold;
+        }
+        .ingredient-item.selected::after { content: "✅"; }
+
+        /* --- Botón Flotante --- */
+        #fab-list {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 70px;
+            height: 70px;
+            background: var(--gold);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.7);
+            cursor: pointer;
+            z-index: 2000;
+            border: 4px solid var(--dark);
+        }
+        #counter-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            background: var(--red);
+            color: white;
+            font-size: 0.9rem;
+            padding: 4px 9px;
+            border-radius: 50%;
+            border: 2px solid var(--dark);
+        }
+
+        /* --- Modal de Resumen --- */
+        #modal-list {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 3000;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .modal-content {
+            background: var(--gray);
+            border-radius: 20px;
+            padding: 25px;
+            max-width: 500px;
+            margin: auto;
+            max-height: 85vh;
+            overflow-y: auto;
+            border: 2px solid var(--gold);
+        }
+        #summary-list { list-style: none; padding: 0; }
+        #summary-list li { 
+            padding: 12px; 
+            border-bottom: 1px solid #333; 
+            font-size: 1.2rem; 
+            display: flex; 
+            justify-content: flex-start;
+            align-items: center;
+            gap: 15px;
+        }
+        .sum-qty {
+            background: var(--gold);
+            color: var(--dark);
+            font-weight: bold;
+            padding: 4px 10px;
+            border-radius: 6px;
+            min-width: 25px;
+            text-align: center;
+        }
+        .btn-close { background: #2ecc71; color: white; border: none; padding: 15px; width: 100%; border-radius: 10px; margin-top: 20px; font-weight: bold; font-size: 1.1rem; cursor: pointer; }
+        .btn-clear { background: transparent; color: #d63031; border: none; width: 100%; margin-top: 15px; font-size: 0.9rem; text-decoration: underline; cursor: pointer; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+    <div class="search-box">
+        <button id="voice-btn">🎤 DECIR TABLAS</button>
+        <input type="text" id="manual-search" placeholder="Buscar tablas...">
+    </div>
+
+    <div class="container" id="results-container"></div>
+
+    <button id="fab-list">
+        👉 <span id="counter-badge">0</span>
+    </button>
+
+    <div id="modal-list">
+        <div class="modal-content">
+            <h2 style="color:var(--gold); margin-top:0; text-align: center;">📦 TOTAL A BUSCAR</h2>
+            <ul id="summary-list"></ul>
+            <button class="btn-close" onclick="toggleModal()">VOLVER A BUSCAR</button>
+            <button class="btn-clear" onclick="clearAll()">VACIAR LISTA</button>
+        </div>
+    </div>
+
+    <script>
+        const menuData = [
+            { id: "mohicana", name: "Tabla Mohicana", img: "mohicana.jpg", ingredients: ["2 Milanesas de Muzzarella", "2 Empanaditas", "2 Albóndigas rebozadas", "Papas Fritas"] },
+            { id: "altoque", name: "Tabla Al Toque", img: "altoque.jpg", ingredients: ["2 Nuggets", "Papas Fritas", "3 Sandwichs Shawarma", "Salsa Provenzal"] },
+            { id: "pogo pago", name: "Tablita Pogo", img: "pogo.jpg", ingredients: ["Shawarma, Jamón y Queso", "2 Empanaditas", "Papas Fritas"] }, // ID modificado para buscar 'pago'
+            { id: "poulet", name: "Tabla Poulet", img: "poulet.jpg", ingredients: ["Pollo relleno JyQ", "2 Empanaditas", "2 Bastones de Muzza", "Papas Fritas"] },
+            { id: "chicken", name: "Tabla Chicken", img: "chicken.jpg", ingredients: ["Finger Pollo rellenos Muzza", "2 Ñapes de Queso", "2 Empanaditas", "Papas Fritas"] },
+            { id: "gulp", name: "Tabla Gulp!", img: "gulp.jpg", ingredients: ["2 Hamburguesas con Queso", "Empanaditas pollo", "Empanaditas jamón y queso", "Papas Fritas"] }, // Actualizado
+            { id: "full", name: "Tabla Full", img: "full.jpg", ingredients: ["Conos Pollo y Shawarma", "2 Nuggets", "2 Ñapes de Queso", "2 Empanaditas","Papas Fritas"] },
+            { id: "compartir", name: "Para Compartir", img: "compartir.jpg", ingredients: ["Mila Picada", "Papas Fritas", "4 Nuggets", "4 Empanaditas", "Burritos", "Salsa Provenzal"] },
+            { id: "vegetariana", name: "Tablita Vegetariana", img: "vegetariana.jpg", ingredients: ["Burrito Veggie", "2 Humones", "2 Ñapes de queso", "Papas Fritas"] },
+            { id: "bang", name: "Tabla Bang!", img: "bang.jpg", ingredients: ["5 Albóndigas rebozadas", "2 Bastones de Muzza", "2 Empanaditas", "Papas Fritas"] },
+            { id: "cantata", name: "Tabla Cantata", img: "cantata.jpg", ingredients: ["2 Jaggers Pollo y JyQ", "4 Empanaditas", "4 Bastones de Muzza", "Papas Fritas"] },
+            { id: "alpalo", name: "Tablita Al Palo", img: "alpalo.jpg", ingredients: ["Mila Picada", "4 Albóndigas rebozadas", "2 Ñapes de Queso", "Papas Fritas"] },
+            
+            { id: "america", name: "Tabla América", img: "america.jpg", ingredients: ["Croquetas de Pollo", "4 Ñapes de Queso", "4 Albóndigas rebozadas", "4 Empanaditas", "Papas Fritas"] },
+            { id: "flash", name: "Tabla Flash", img: "flash.jpg", ingredients: ["Burrito", "2 Bastones de Muzza", "2 Empanaditas", "Papas Fritas"] },
+            { id: "up", name: "Tablita Up!", img: "up.jpg", ingredients: ["3 Shawarmitas", "Conos Pollo y Queso", "3 Empanaditas", "Papas Fritas"] },
+            { id: "futbol", name: "Tablita de Fútbol", img: "futbol.jpg", ingredients: ["Jagger Pollo y Muzza", "2 Ñapes de Queso", "2 Bastones de Muzza", "2 Empanaditas", "Papas Fritas"] },
+            { id: "mix24", name: "Tabla Mix Grande", img: "mix24.jpg", ingredients: ["Mila Carne Picada", "Mila Pollo Picada", "4 Bastones Muzza", "4 Empanaditas", "Papas Fritas"] },
+            { id: "torinos", name: "Torinos Ranch", img: "torinos.jpg", ingredients: ["1 Torino Pollo JyQ", "1 Torino Shawarma", "2 Ñapes de Queso", "2 Empanaditas", "Papas Fritas"] },
+            { id: "cuarenta", name: "Tabla Cuarenta y Cinco", img: "cuarenta.jpg", ingredients: ["Cazuela Salchichas", "3 Nuggets caseros", "2 Empanaditas", "Pancitos Calientes", "Papas Fritas"] },
+            { id: "tango", name: "Tabla Tango", img: "tango.jpg", ingredients: ["2 Shawarmitas", "2 Cannolis Pollo/Cheddar", "2 Bravones JyQ", "Papas Fritas"] },
+            { id: "pool", name: "Pool Party", img: "pool.jpg", ingredients: ["2 Hojaldrados Pollo/Queso", "2 Cannolis JyQ", "2 Bastones Muzza", "2 Torrejitas Verdura", "Papas Fritas"] },
+            { id: "campo", name: "Tabla de Campo", img: "campo.jpg", ingredients: ["Chori", "Salchicha Parrillera", "2 Torrejitas Verdura", "2 Empanaditas", "Papas Fritas"] },
+            // --- Tablas Nuevas de las imágenes ---
+            { id: "amigos", name: "Tabla Amigos", img: "tabla-amigos.jpg", ingredients: ["6 Shawarmitas", "6 Empanaditas", "6 Ñapes de queso", "6 Nuggets", "Papas Fritas"] },
+            { id: "genio amor", name: "Tabla Genio Amor", img: "tabla-genio-amor.jpg", ingredients: ["Pollo deshuesado relleno con salsa de puerros", "2 Bombas de queso", "Papas Fritas"] },
+            { id: "chesse", name: "Tabla Chesse", img: "tabla-chesse.jpg", ingredients: ["Taquitos de J/Q", "4 Ñapes de Queso", "4 Bastones de Muzza", "4 Empanaditas", "4 Albóndigas", "Papas Fritas"] },
+            { id: "bocadillo albondigas", name: "Bocadillo de Albóndigas", img: "bocadillo-albondigas.jpg", ingredients: ["Cazuela de Albóndigas a la Bolognesa", "2 Empanaditas", "Papas Fritas", "Pancitos recién horneados"] },
+            { id: "tartines", name: "Tartines x3", img: "tartines.jpg", ingredients: ["1 Pollo", "1 Carne", "1 J/Q", "Papas Fritas", "2 Humones de choclo rebozados"] },
+            { id: "pontiac", name: "Tablita Pontiac", img: "tablita-pontiac.jpg", ingredients: ["2 Bastones de muzza", "2 Nuggets", "2 Empanaditas", "Cofradía de shawarma y muzza", "Papas Fritas"] },
+            { id: "love", name: "Tabla Love", img: "tabla-love.jpg", ingredients: ["Cazuela de albondiguitas", "2 Cannolis relleno", "2 Frankfurts", "Papas Fritas"] },
+            { id: "mexico cabron", name: "México Cabrón", img: "mexico-cabron.jpg", ingredients: ["Taquitos: pollo, carne, J/Q", "2 Bastones de muzzarela", "2 Nuggets", "Papas Fritas"] }
+        ];
+
+        // --- LÓGICA CORE ---
+
+        function renderMenu() {
+            const container = document.getElementById('results-container');
+            // Limpia el contenedor antes de renderizar para evitar duplicados si se llama varias veces
+            container.innerHTML = ''; 
+            menuData.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'food-card';
+                card.id = `card-${item.id.replace(/\s/g, '-')}`; // Reemplaza espacios por guiones para IDs HTML válidos
+                card.innerHTML = `
+                    <img src="${item.img}" alt="${item.name}">
+                    <div class="food-details">
+                        <h2>${item.name}</h2>
+                        <div class="ingredient-list">
+                            ${item.ingredients.map(ing => `<div class="ingredient-item" onclick="toggleIng(this)">${ing}</div>`).join('')}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function toggleIng(el) {
+            el.classList.toggle('selected');
+            const count = document.querySelectorAll('.ingredient-item.selected').length;
+            document.getElementById('counter-badge').innerText = count;
+        }
+
+        function parseIngredient(text) {
+            // Intenta extraer número y nombre. Considera "JyQ" como parte del nombre.
+            const match = text.match(/^(\d+)\s*(.*)/);
+            if (match) {
+                return { qty: parseInt(match[1]), name: match[2].trim() };
+            }
+            return { qty: 1, name: text.trim() }; // Si no hay número, asume 1
+        }
+
+        function toggleModal() {
+            const modal = document.getElementById('modal-list');
+            const list = document.getElementById('summary-list');
+            
+            if (modal.style.display === 'block') {
+                modal.style.display = 'none';
+                return;
+            }
+
+            // --- PROCESO DE SUMATORIA Y AGRUPACIÓN ---
+            const selectedElements = document.querySelectorAll('.ingredient-item.selected');
+            const totals = {};
+
+            selectedElements.forEach(el => {
+                const { qty, name } = parseIngredient(el.innerText);
+                if (totals[name]) {
+                    totals[name] += qty;
+                } else {
+                    totals[name] = qty;
+                }
+            });
+
+            // --- ORDENAMIENTO ---
+            // Definimos prioridades para que aparezcan en orden lógico
+            const priority = (name) => {
+                const n = name.toLowerCase();
+                if (n.includes("empanadita")) return 1;
+                if (n.includes("ñape") || n.includes("bastón") || n.includes("muzzarella") || n.includes("queso")) return 2;
+                if (n.includes("nugget") || n.includes("albóndiga") || n.includes("pollo") || n.includes("carne") || n.includes("shawarma")) return 3;
+                if (n.includes("papa")) return 5; // Papas al final
+                return 4; // Otros al medio
+            };
+
+            const sortedItems = Object.keys(totals).sort((a, b) => {
+                const pA = priority(a);
+                const pB = priority(b);
+                if (pA !== pB) return pA - pB;
+                return a.localeCompare(b); // Alfabético si son de la misma categoría
+            });
+
+            // --- RENDERIZADO DEL RESUMEN ---
+            list.innerHTML = "";
+            if (sortedItems.length === 0) {
+                list.innerHTML = "<li style='border:none; color:#666;'>No hay nada seleccionado</li>";
+            } else {
+                sortedItems.forEach(name => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span class="sum-qty">${totals[name]}</span> <span>${name}</span>`;
+                    list.appendChild(li);
+                });
+            }
+
+            modal.style.display = 'block';
+        }
+
+        function multiFilter(text) {
+            const input = text.toLowerCase().trim();
+            const allCards = document.querySelectorAll('.food-card');
+
+            if (input === "") {
+                allCards.forEach(card => card.classList.remove('active'));
+                return;
+            }
+            
+            const keywords = input.split(/[\s,yeó]+/).filter(w => w.length > 2);
+            let foundAny = false;
+
+            allCards.forEach(card => {
+                // Busca en el ID y en el nombre de la tarjeta
+                const cardId = card.id.toLowerCase();
+                const cardName = card.querySelector('h2').innerText.toLowerCase();
+                
+                const matchById = keywords.some(key => cardId.includes(key));
+                const matchByName = keywords.some(key => cardName.includes(key));
+
+                if (matchById || matchByName) {
+                    card.classList.add('active');
+                    foundAny = true;
+                } else {
+                    card.classList.remove('active');
+                }
+            });
+
+            if (foundAny) window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // --- EVENTOS ---
+        document.getElementById('manual-search').addEventListener('input', (e) => multiFilter(e.target.value));
+        document.getElementById('fab-list').onclick = toggleModal;
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const rec = new SpeechRecognition();
+            rec.lang = 'es-AR';
+            const btn = document.getElementById('voice-btn');
+            btn.onclick = () => { rec.start(); btn.classList.add('listening'); };
+            rec.onresult = (e) => {
+                const transcript = e.results[0][0].transcript;
+                document.getElementById('manual-search').value = transcript;
+                multiFilter(transcript);
+            };
+            rec.onend = () => btn.classList.remove('listening');
+            rec.onerror = (e) => {
+                console.error("Error de voz: ", e.error);
+                btn.classList.remove('listening');
+            };
+        } else {
+            document.getElementById('voice-btn').innerText = "Voz no soportada";
+        }
+
+        function clearAll() {
+            document.querySelectorAll('.ingredient-item').forEach(i => i.classList.remove('selected'));
+            document.getElementById('counter-badge').innerText = "0";
+            toggleModal();
+        }
+
+        renderMenu(); // Llama a renderMenu al cargar la página
+    </script>
+</body>
+</html>
+    
+  </body>
+  
+</html>
